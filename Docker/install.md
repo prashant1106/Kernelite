@@ -1,4 +1,4 @@
-cavOS Internal Documents
+Kernelite Internal Documents
 
 - Build enviroment:
     - Compile the docker enviroment: ``docker build docker -t os-dev``
