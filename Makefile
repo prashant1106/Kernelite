@@ -1,57 +1,58 @@
-COMPILER = gcc
-LINKER = ld
-ASSEMBLER = nasm
-CFLAGS = -m32 -c -ffreestanding
-ASFLAGS = -f elf32
-LDFLAGS = -m elf_i386 -T src/link.ld
-EMULATOR = qemu-system-i386
-EMULATOR_FLAGS = -kernel
+ASM=nasm
+CC=gcc
 
-OBJS = obj/kasm.o obj/kc.o obj/idt.o obj/isr.o obj/kb.o obj/screen.o obj/string.o obj/system.o obj/util.o obj/shell.o
-OUTPUT = tmp/boot/kernel.bin
+SRC_DIR=src
+TOOLS_DIR=tools
+BUILD_DIR=build
 
-run: all
-	$(EMULATOR) $(EMULATOR_FLAGS) $(OUTPUT)
+.PHONY: all floppy_image kernel bootloader clean always tools_fat
 
-all:$(OBJS)
-	mkdir tmp/ -p
-	mkdir tmp/boot/ -p
-	$(LINKER) $(LDFLAGS) -o $(OUTPUT) $(OBJS)
+all: floppy_image tools_fat
 
-obj/kasm.o:src/kernel.asm
-	mkdir obj/ -p
-	$(ASSEMBLER) $(ASFLAGS) -o obj/kasm.o src/kernel.asm
+#
+# Floppy image
+#
+floppy_image: $(BUILD_DIR)/main_floppy.img
 
-obj/kc.o:src/kernel.c
-	$(COMPILER) $(CFLAGS) src/kernel.c -o obj/kc.o
+$(BUILD_DIR)/main_floppy.img: bootloader kernel
+	dd if=/dev/zero of=$(BUILD_DIR)/main_floppy.img bs=512 count=2880
+	mkfs.fat -F 12 -n "NBOS" $(BUILD_DIR)/main_floppy.img
+	dd if=$(BUILD_DIR)/bootloader.bin of=$(BUILD_DIR)/main_floppy.img conv=notrunc
+	mcopy -i $(BUILD_DIR)/main_floppy.img $(BUILD_DIR)/kernel.bin "::kernel.bin"
+	mcopy -i $(BUILD_DIR)/main_floppy.img test.txt "::test.txt"
 
-obj/idt.o:src/idt.c
-	$(COMPILER) $(CFLAGS) src/idt.c -o obj/idt.o
+#
+# Bootloader
+#
+bootloader: $(BUILD_DIR)/bootloader.bin
 
-obj/kb.o:src/kb.c
-	$(COMPILER) $(CFLAGS) src/kb.c -o obj/kb.o
+$(BUILD_DIR)/bootloader.bin: always
+	$(ASM) $(SRC_DIR)/bootloader/boot.asm -f bin -o $(BUILD_DIR)/bootloader.bin
 
-obj/isr.o:src/isr.c
-	$(COMPILER) $(CFLAGS) src/isr.c -o obj/isr.o
+#
+# Kernel
+#
+kernel: $(BUILD_DIR)/kernel.bin
 
-obj/screen.o:src/screen.c
-	$(COMPILER) $(CFLAGS) src/screen.c -o obj/screen.o
+$(BUILD_DIR)/kernel.bin: always
+	$(ASM) $(SRC_DIR)/kernel/main.asm -f bin -o $(BUILD_DIR)/kernel.bin
 
-obj/string.o:src/string.c
-	$(COMPILER) $(CFLAGS) src/string.c -o obj/string.o
+#
+# Tools
+#
+tools_fat: $(BUILD_DIR)/tools/fat
+$(BUILD_DIR)/tools/fat: always $(TOOLS_DIR)/fat/fat.c
+	mkdir -p $(BUILD_DIR)/tools
+	$(CC) -g -o $(BUILD_DIR)/tools/fat $(TOOLS_DIR)/fat/fat.c
 
-obj/system.o:src/system.c
-	$(COMPILER) $(CFLAGS) src/system.c -o obj/system.o
+#
+# Always
+#
+always:
+	mkdir -p $(BUILD_DIR)
 
-obj/util.o:src/util.c
-	$(COMPILER) $(CFLAGS) src/util.c -o obj/util.o
-
-obj/shell.o:src/shell.c
-	$(COMPILER) $(CFLAGS) src/shell.c -o obj/shell.o
-
-build:all
-	grub-mkrescue -o kernelite.iso tmp/
-
-clear:
-	rm -f obj/*.o
-	rm -r -f tmp/kernel.bin
+#
+# Clean
+#
+clean:
+	rm -rf $(BUILD_DIR)/*
