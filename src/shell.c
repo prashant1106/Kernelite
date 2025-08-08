@@ -67,7 +67,8 @@ void launch_shell(int n)
 
 void test(string ch) {
 	printf("\n");
-	printf("b");
+	string null;
+	uint8 res = whereSpace1(ch);
 	printf("\n");
 }
 

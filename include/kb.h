@@ -8,6 +8,4 @@
 #include "util.h"
 
 string readStr();
-string readKeys();
-
 #endif //KB_H
