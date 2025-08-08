@@ -1,0 +1,15 @@
+//
+// Created by Prashant Kumar Jha on 08/08/25.
+//
+#include "../include/kb.h"
+#include "../include/isr.h"
+#include "../include/idt.h"
+#include "../include/util.h"
+#include "../include/shell.h"
+kmain()
+{
+    isr_install();
+    clearScreen();
+    printf("Welcome to Kernelite! The OS that reminds you of how good computers \nwere back then.. Anyway, just execute any command you want\n'help' is your friend :)\n\n");
+    launch_shell(0);
+}
