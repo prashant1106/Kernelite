@@ -7,7 +7,9 @@ RUN apt-get update && \
         xorriso \
         grub-pc-bin \
         grub-common \
-        dosfstools && \
+        dosfstools \
+        mtools && \
+        qemu-system-x86 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
